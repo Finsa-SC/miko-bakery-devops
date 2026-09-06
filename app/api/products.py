@@ -1,31 +1,12 @@
 from fastapi import APIRouter
 
-from app.db import transaction
+from app.application import create_product, select_products
 
 router = APIRouter()
 
 @router.get("/products")
-def get_products():
-    query = """
-    SELECT * FROM products;
-    """
-    with transaction() as db:
-        return db.execute_query(query)
-
-@router.post("/products")
-def add_product(
-        product_name: str,
-        price: int,
-        stock: int,
-        description: str|None = None,
-        is_active: bool|None = None,
-):
-    if not is_active or stock <= 0:
-        is_active = True if stock > 0 else False
-
-    query = """
-    INSERT INTO products (name, description, price, stock, is_active) 
-    VALUES (%s, %s, %s, %s, %s)
-    """
-    with transaction() as db:
-        db.execute_non_query(query,(product_name, description, price, stock, is_active))
+def get_products(search: str|None=None, price_below: int|None=None):
+    return select_products(
+        search,
+        price_below=price_below
+    )
