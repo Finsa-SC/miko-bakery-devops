@@ -20,3 +20,10 @@ class Database:
             params,
             lambda cur, conn: cur.rowcount
         )
+
+    def execute_scalar(self, query: str, params: tuple|None=None):
+        return self.execute(
+            query,
+            params,
+            lambda cur, conn: cur.fetchone()[0]
+        )
