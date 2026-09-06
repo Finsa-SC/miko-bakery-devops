@@ -21,7 +21,7 @@ def add_product(
         )
     return result
 
-@router.patch("/products")
+@router.patch("/products/{product_id}")
 def update_product(
         product_id: int,
         new_name: str|None = None,
@@ -38,7 +38,7 @@ def update_product(
     )
     return result
 
-@router.delete("/products")
+@router.delete("/products/{product_id}")
 def delete_product(product_id: int):
     result = remove_product(
         product_id
