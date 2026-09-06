@@ -8,7 +8,7 @@ def execute(conn, query: str, params: tuple|None, operation):
         return operation(cur, conn)
 
 @contextmanager
-def execute_transaction():
+def transaction():
     with pool.connection() as conn:
         try:
             yield conn
