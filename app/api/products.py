@@ -1,7 +1,6 @@
 from fastapi import APIRouter
 
 from app.db import transaction
-from app.db.helper import execute_query, execute_non_query
 
 router = APIRouter()
 
@@ -10,8 +9,8 @@ def get_products():
     query = """
     SELECT * FROM products;
     """
-    with transaction() as conn:
-        execute_query(conn, query)
+    with transaction() as db:
+        return db.execute_query(query)
 
 @router.post("/products")
 def add_product(
@@ -21,12 +20,12 @@ def add_product(
         description: str|None = None,
         is_active: bool|None = None,
 ):
-    if not is_active:
+    if not is_active or stock <= 0:
         is_active = True if stock > 0 else False
 
     query = """
     INSERT INTO products (name, description, price, stock, is_active) 
     VALUES (%s, %s, %s, %s, %s)
     """
-    with transaction() as conn:
-        execute_non_query(conn, query,(product_name, description, price, stock, is_active))
+    with transaction() as db:
+        db.execute_non_query(query,(product_name, description, price, stock, is_active))
