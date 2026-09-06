@@ -1,21 +1,35 @@
+from contextlib import contextmanager
+
 from .pool import pool
 
-def execute(query: str, params: tuple|None, operation):
-    with pool.connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(query, params)
-            return operation(cur, conn)
+def execute(conn, query: str, params: tuple|None, operation):
+    with conn.cursor() as cur:
+        cur.execute(query, params)
+        return operation(cur, conn)
 
-def execute_query(query: str, params: tuple|None = None):
+@contextmanager
+def execute_transaction():
+    with pool.connection() as conn:
+        try:
+            yield conn
+        except Exception:
+            conn.rollback()
+            raise
+        else:
+            conn.commit()
+
+def execute_query(conn, query: str, params: tuple|None = None):
     return execute(
+        conn,
         query,
         params,
-        lambda cur, conn: cur.fetchall()
+        lambda cur, con: cur.fetchall()
     )
 
-def execute_non_query(query: str, params: tuple|None=None):
+def execute_non_query(conn, query: str, params: tuple|None=None):
     return execute(
+        conn,
         query,
         params,
-        lambda cur, conn: cur.fetchone()
+        lambda cur, con: cur.rowcount
     )
