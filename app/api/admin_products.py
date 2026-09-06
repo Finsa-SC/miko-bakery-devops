@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.application import create_product, modify_product
+from app.application import create_product, modify_product, remove_product
 
 router = APIRouter()
 
@@ -19,7 +19,28 @@ def add_product(
             description,
             is_active
         )
-    return
+    return result
 
-def update_product():
-    result = modify_product()
+@router.patch("/products")
+def update_product(
+        product_id: int,
+        new_name: str|None = None,
+        new_description: str|None = None,
+        new_stock: int|None = None,
+        new_price: int|None = None,
+):
+    result = modify_product(
+        product_id,
+        new_name,
+        new_price,
+        new_stock,
+        new_description,
+    )
+    return result
+
+@router.delete("/products")
+def delete_product(product_id: int):
+    result = remove_product(
+        product_id
+    )
+    return result

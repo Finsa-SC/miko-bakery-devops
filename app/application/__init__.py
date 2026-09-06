@@ -1,1 +1,1 @@
-from .products import create_product, select_products, modify_product
+from .products import create_product, select_products, modify_product, remove_product

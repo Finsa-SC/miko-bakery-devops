@@ -1,5 +1,3 @@
-from encodings.quopri_codec import quopri_encode
-
 from app.db import transaction
 
 def create_product(
@@ -17,7 +15,7 @@ def create_product(
     VALUES (%s, %s, %s, %s, %s)
     """
     with transaction() as db:
-        db.execute_non_query(query,(product_name, description, price, stock, is_active))
+        return db.execute_non_query(query,(product_name, description, price, stock, is_active))
 
 def select_products(
         search: str|None = None,
@@ -42,7 +40,10 @@ def select_products(
         query += " WHERE " + " AND ".join(conditions)
 
     with transaction() as db:
-        return db.execute_query(query, params)
+        return db.execute_query(
+            query,
+            params=params
+        )
 
 def modify_product(
         product_id: int,
@@ -57,11 +58,11 @@ def modify_product(
         name = COALESCE(%s, name),
         price = COALESCE(%s, price),
         stock = COALESCE(%s, stock),
-        description = COALESCE(%s, description),
+        description = COALESCE(%s, description)
     WHERE id = %s
     """
     with transaction() as db:
-        db.execute_non_query(
+        return db.execute_non_query(
             query,
             params=(
                 new_name,
@@ -70,4 +71,15 @@ def modify_product(
                 new_description,
                 product_id,
             )
+        )
+
+def remove_product(product_id: int):
+    query = """
+    DELETE FROM products
+    WHERE id = %s
+    """
+    with transaction() as db:
+        return db.execute_non_query(
+            query,
+            params=(product_id,)
         )
