@@ -1,6 +1,7 @@
 from app.db import transaction
 
 def create_product(
+        category_id: int,
         product_name: str,
         price: int,
         stock: int,
@@ -11,11 +12,11 @@ def create_product(
         is_active = True if stock > 0 else False
 
     query = """
-    INSERT INTO products (name, description, price, stock, is_active) 
-    VALUES (%s, %s, %s, %s, %s)
+    INSERT INTO products (category_id, name, description, price, stock, is_active) 
+    VALUES (%s, %s, %s, %s, %s, %s)
     """
     with transaction() as db:
-        return db.execute_non_query(query,(product_name, description, price, stock, is_active))
+        return db.execute_non_query(query,(category_id, product_name, description, price, stock, is_active))
 
 def collect_product_catalog(
         search: str|None = None,
@@ -46,7 +47,7 @@ def collect_product_catalog(
         params.append(price_below)
 
     if conditions:
-        query += " WHERE " + " AND ".join(conditions) + " ORDER BY p.name"
+        query += " WHERE " + " AND ".join(conditions)
 
     with transaction() as db:
         return db.execute_query(

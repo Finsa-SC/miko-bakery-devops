@@ -6,6 +6,7 @@ router = APIRouter()
 
 @router.post("/products")
 def add_product(
+        category_id: int,
         product_name: str,
         price: int,
         stock: int,
@@ -13,12 +14,13 @@ def add_product(
         is_active: bool|None = None,
 ):
     result = create_product(
-            product_name,
-            price,
-            stock,
-            description,
-            is_active
-        )
+        category_id,
+        product_name,
+        price,
+        stock,
+        description,
+        is_active
+    )
     return result
 
 @router.patch("/products/{product_id}")
