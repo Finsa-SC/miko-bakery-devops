@@ -17,7 +17,7 @@ def create_product(
     with transaction() as db:
         return db.execute_non_query(query,(product_name, description, price, stock, is_active))
 
-def select_products(
+def collect_product_catalog(
         search: str|None = None,
         price_below: int|None = None,
 ):
@@ -25,19 +25,28 @@ def select_products(
     params = []
 
     query = """
-        SELECT * FROM products
+        SELECT 
+            p.id,
+            p.name,
+            c.name AS category,
+            p.description,
+            p.price,
+            p.stock 
+        FROM products p
+        JOIN categories c
+            on c.id = p.category_id
         """
 
     if search:
-        conditions.append("name ILIKE %s")
+        conditions.append("p.name ILIKE %s")
         params.append(f"%{search}%")
 
     if price_below:
-        conditions.append("price <= %s")
+        conditions.append("p.price <= %s")
         params.append(price_below)
 
     if conditions:
-        query += " WHERE " + " AND ".join(conditions)
+        query += " WHERE " + " AND ".join(conditions) + " ORDER BY p.name"
 
     with transaction() as db:
         return db.execute_query(

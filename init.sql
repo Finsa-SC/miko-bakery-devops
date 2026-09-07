@@ -1,31 +1,83 @@
--- =========================================
--- Categories
--- =========================================
+-- ============================================================
+-- Miko Bakery Database Schema
+-- ============================================================
+
+-- ============================================================
+-- ROLES
+-- ============================================================
+
+CREATE TABLE roles (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE,
+    description TEXT
+);
+
+
+-- ============================================================
+-- USERS
+-- ============================================================
+
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    role_id INTEGER NOT NULL REFERENCES roles(id),
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    phone VARCHAR(20) NOT NULL,
+    password_hash TEXT NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+
+-- ============================================================
+-- ADDRESSES
+-- ============================================================
+
+CREATE TABLE addresses (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+
+    label VARCHAR(50) NOT NULL,
+    recipient_name VARCHAR(100) NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    street TEXT NOT NULL,
+    city VARCHAR(100) NOT NULL,
+    postal_code VARCHAR(10) NOT NULL,
+    is_default BOOLEAN NOT NULL DEFAULT FALSE,
+
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+
+-- ============================================================
+-- CATEGORIES
+-- ============================================================
 
 CREATE TABLE categories (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE,
     description TEXT,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    is_active BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 
--- =========================================
--- Products
--- =========================================
+-- ============================================================
+-- PRODUCTS
+-- ============================================================
 
 CREATE TABLE products (
     id SERIAL PRIMARY KEY,
 
     category_id INTEGER NOT NULL
-        REFERENCES categories(id)
-        ON DELETE RESTRICT,
+        REFERENCES categories(id),
 
-    name VARCHAR(100) NOT NULL UNIQUE,
+    name VARCHAR(100) NOT NULL,
     description TEXT,
 
-    price INTEGER NOT NULL
-        CHECK (price >= 0),
+    -- Price is stored as integer Rupiah.
+    price INTEGER NOT NULL CHECK (price >= 0),
 
     stock INTEGER NOT NULL DEFAULT 0
         CHECK (stock >= 0),
@@ -36,35 +88,90 @@ CREATE TABLE products (
 );
 
 
--- =========================================
--- Orders
--- =========================================
+-- ============================================================
+-- CARTS
+-- ============================================================
+
+CREATE TABLE carts (
+    id SERIAL PRIMARY KEY,
+
+    user_id INTEGER NOT NULL UNIQUE
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+
+-- ============================================================
+-- CART ITEMS
+-- ============================================================
+
+CREATE TABLE cart_items (
+    id SERIAL PRIMARY KEY,
+
+    cart_id INTEGER NOT NULL
+        REFERENCES carts(id)
+        ON DELETE CASCADE,
+
+    product_id INTEGER NOT NULL
+        REFERENCES products(id),
+
+    quantity INTEGER NOT NULL
+        CHECK (quantity > 0),
+
+    UNIQUE (cart_id, product_id)
+);
+
+
+-- ============================================================
+-- ORDER STATUSES
+-- ============================================================
+
+CREATE TABLE order_statuses (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE
+);
+
+
+-- ============================================================
+-- ORDERS
+-- ============================================================
 
 CREATE TABLE orders (
     id SERIAL PRIMARY KEY,
 
-    status VARCHAR(20) NOT NULL DEFAULT 'PENDING'
-        CHECK (
-            status IN (
-                'PENDING',
-                'CONFIRMED',
-                'PROCESSING',
-                'SHIPPED',
-                'COMPLETED',
-                'CANCELLED'
-            )
-        ),
+    user_id INTEGER NOT NULL
+        REFERENCES users(id),
 
-    total_amount INTEGER NOT NULL DEFAULT 0
-        CHECK (total_amount >= 0),
+    status_id INTEGER NOT NULL
+        REFERENCES order_statuses(id),
 
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    -- Delivery address snapshot
+    shipping_recipient VARCHAR(100) NOT NULL,
+    shipping_phone VARCHAR(20) NOT NULL,
+    shipping_street TEXT NOT NULL,
+    shipping_city VARCHAR(100) NOT NULL,
+    shipping_postal_code VARCHAR(10) NOT NULL,
+
+    subtotal INTEGER NOT NULL
+        CHECK (subtotal >= 0),
+
+    delivery_fee INTEGER NOT NULL DEFAULT 0
+        CHECK (delivery_fee >= 0),
+
+    total INTEGER NOT NULL
+        CHECK (total >= 0),
+
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 
--- =========================================
--- Order Items
--- =========================================
+-- ============================================================
+-- ORDER ITEMS
+-- ============================================================
 
 CREATE TABLE order_items (
     id SERIAL PRIMARY KEY,
@@ -73,12 +180,12 @@ CREATE TABLE order_items (
         REFERENCES orders(id)
         ON DELETE CASCADE,
 
-    product_id INTEGER NOT NULL
+    product_id INTEGER
         REFERENCES products(id)
-        ON DELETE RESTRICT,
+        ON DELETE SET NULL,
 
+    -- Product snapshot at checkout
     product_name VARCHAR(100) NOT NULL,
-
     unit_price INTEGER NOT NULL
         CHECK (unit_price >= 0),
 
@@ -90,33 +197,59 @@ CREATE TABLE order_items (
 );
 
 
--- =========================================
--- Seed Categories
--- =========================================
+-- ============================================================
+-- PAYMENTS
+-- ============================================================
+
+CREATE TABLE payments (
+    id SERIAL PRIMARY KEY,
+
+    order_id INTEGER NOT NULL UNIQUE
+        REFERENCES orders(id)
+        ON DELETE CASCADE,
+
+    method VARCHAR(50) NOT NULL,
+    status VARCHAR(50) NOT NULL,
+
+    amount INTEGER NOT NULL
+        CHECK (amount >= 0),
+
+    paid_at TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+
+-- ============================================================
+-- SEED ROLES
+-- ============================================================
+
+INSERT INTO roles (name, description)
+VALUES
+    ('customer', 'Customer who purchases bakery products'),
+    ('store_owner', 'Store owner who manages the bakery');
+
+
+-- ============================================================
+-- SEED ORDER STATUSES
+-- ============================================================
+
+INSERT INTO order_statuses (name)
+VALUES
+    ('PENDING'),
+    ('CONFIRMED'),
+    ('PROCESSING'),
+    ('SHIPPED'),
+    ('COMPLETED'),
+    ('CANCELLED');
+
+
+-- ============================================================
+-- SEED CATEGORIES
+-- ============================================================
 
 INSERT INTO categories (name, description)
 VALUES
-    ('Roti', 'Berbagai macam roti'),
-    ('Pastry', 'Pastry dan makanan panggang'),
-    ('Sandwich', 'Sandwich dan makanan ringan'),
-    ('Minuman', 'Minuman panas dan dingin');
-
-
--- =========================================
--- Seed Products
--- =========================================
-
-INSERT INTO products
-    (category_id, name, description, price, stock)
-VALUES
-    (1, 'Roti Coklat', 'Roti lembut dengan isian coklat', 8000, 20),
-    (1, 'Roti Keju', 'Roti dengan isian dan topping keju', 9000, 15),
-    (2, 'Croissant', 'Croissant buttery dan renyah', 12000, 10),
-    (2, 'Cinnamon Roll', 'Roti cinnamon dengan glaze manis', 11000, 12),
-    (2, 'Roti Sosis', 'Roti lembut dengan isian sosis', 10000, 10),
-    (3, 'Sandwich Telur', 'Sandwich dengan telur dan sayuran', 15000, 8),
-    (4, 'Kopi Susu', 'Kopi susu dengan rasa creamy', 12000, 20),
-    (4, 'Teh Manis', 'Teh manis dingin', 6000, 25),
-    (4, 'Teh Lemon', 'Teh dengan perasan lemon', 8000, 15),
-    (4, 'Susu Coklat', 'Susu coklat dingin', 10000, 15),
-    (4, 'Jus Jeruk', 'Jus jeruk segar', 10000, 12);
+    ('Bread', 'Fresh bread and bakery products'),
+    ('Pastry', 'Pastry and laminated bakery products'),
+    ('Sandwich', 'Bread-based meals and sandwiches'),
+    ('Drink', 'Hot and cold beverages');
