@@ -53,3 +53,4 @@ wordlists/
 dist/
 build/
 *.egg-info/
+!.env.example
