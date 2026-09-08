@@ -7,7 +7,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: ./app
+      dockerfile: ./app/Dockerfile
     networks:
       - miko-network
 
