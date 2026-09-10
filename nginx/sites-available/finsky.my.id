@@ -1,0 +1,8 @@
+server {
+    listen 80;
+    server_name finsky.my.id;
+
+    location / {
+        proxy_pass http://front-end:80;
+    }
+}
